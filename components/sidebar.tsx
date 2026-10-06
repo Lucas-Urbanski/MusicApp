@@ -1,18 +1,22 @@
 "use client";
 
 import React from "react";
-import { Menu, Plus } from "lucide-react";
+import { Menu, Plus, Minus } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onOldChat: () => void; // Change Later
   onNewChat: () => void;
+  allChats: any[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onClose,
+  onOldChat,
   onNewChat,
+  allChats
 }) => {
   return (
     <aside
@@ -30,13 +34,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Menu className="w-5 h-5" />
           </button>
         </div>
+        {  
+          allChats.map((item, index) => (
+            <button
+              onClick={onOldChat}
+              className="flex items-center gap-3 bg-[#131314] hover:bg-gray-800 transition-colors rounded-full px-4 py-2.5 text-sm font-medium mb-4 w-fit text-gray-200 border border-gray-700"
+              key={index}
+            >
+              <Minus className="w-4 h-4" />
+              <span className="italic">{item.title}</span>
+            </button>
+          ))
+        }
 
         <button
           onClick={onNewChat}
-          className="flex items-center gap-3 bg-[#131314] hover:bg-gray-800 transition-colors rounded-full px-4 py-2.5 text-sm font-medium mb-6 w-fit text-gray-200 border border-gray-700"
+          className="flex items-center gap-3 bg-[#131314] hover:bg-gray-800 transition-colors rounded-full px-4 py-2.5 text-sm font-medium mb-4 w-fit text-gray-200 border border-gray-700"
         >
           <Plus className="w-4 h-4" />
-          New Chat
+          <span>New Chat</span>
         </button>
 
         <div className="flex-1 overflow-y-auto">

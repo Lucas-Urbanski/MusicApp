@@ -8,6 +8,24 @@ import { WelcomeHero } from "../components/welcomeHero";
 import { ChatBubble } from "../components/chatMassage";
 import { ChatInput } from "../components/chatInput";
 
+import { createClient } from "@/utils/supabase/client";
+import { AuthError, JwtPayload } from "@supabase/supabase-js";
+
+const supabase = createClient();
+
+async function UserDetails() {
+  const { data, error } = await supabase.auth.getClaims();
+  if (error || !data?.claims) return error;
+  return data.claims;
+}
+
+async function getChats() {
+  const { data, error } = await supabase.from('Chats').select();
+  if (error || data == null) return ; // This is a hotfix
+  return data;
+}
+
+
 export default function MusicChat() {
   const [prompt, setPrompt] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -16,8 +34,30 @@ export default function MusicChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [supaData, setSupaData] = useState<AuthError | JwtPayload | null >(null);
+  const [supaChats, setSupaChats] = useState<any[]> ();
+  const [isSupaLoading, setSupaLoading] = useState<boolean>(true);
+  
+  const getSupaData = async () => {
+    try {
+      const res = await UserDetails();
+      setSupaData(res);
+
+      const ch = await getChats();
+      setSupaChats(ch != undefined ? ch : []);
+
+      setSupaLoading(false);
+    } catch (err) {
+      console.log(err);
+    }
+  }
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+    if (supaData == null) {
+        getSupaData();
+    }
+
   }, [messages]);
 
   const handleSubmit = async () => {
@@ -65,6 +105,7 @@ export default function MusicChat() {
     } finally {
       setIsLoading(false);
     }
+
   };
 
   const startNewChat = () => {
@@ -72,7 +113,17 @@ export default function MusicChat() {
     setPrompt("");
   };
 
+  const continueOldChat = () => {
+
+  }
+
   const hasMessages = messages.length > 0;
+
+  // This is for when the Page is loading information
+  if (isSupaLoading) { 
+    return (<div>Ah</div>)
+  
+  }
 
   return (
     <div className="flex h-screen w-full bg-[#131314] text-gray-100 font-sans overflow-hidden">
@@ -80,6 +131,8 @@ export default function MusicChat() {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onNewChat={startNewChat}
+        onOldChat={continueOldChat}
+        allChats={supaChats != undefined ? supaChats : []}
       />
 
       <main className="flex-1 flex flex-col items-center justify-between relative h-full transition-all duration-300">
@@ -114,9 +167,11 @@ export default function MusicChat() {
               <div ref={messagesEndRef} />
             </div>
           </div>
-        ) : (
-          <WelcomeHero userName="Your Mom" />
-        )}
+        ) : 
+          // This portion needs to be changed to give an individuals username (Currently not set up)
+          supaData ? <WelcomeHero userName={"username here"} /> :
+            <WelcomeHero userName={"User"} />
+        }
 
         <ChatInput
           prompt={prompt}
