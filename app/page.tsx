@@ -20,11 +20,10 @@ async function UserDetails() {
 }
 
 async function getChats() {
-  const { data, error } = await supabase.from('Chats').select();
-  if (error || data == null) return ; // This is a hotfix
+  const { data, error } = await supabase.from("Chats").select();
+  if (error || data == null) return; // This is a hotfix
   return data;
 }
-
 
 export default function MusicChat() {
   const [prompt, setPrompt] = useState("");
@@ -34,10 +33,10 @@ export default function MusicChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const [supaData, setSupaData] = useState<AuthError | JwtPayload | null >(null);
-  const [supaChats, setSupaChats] = useState<any[]> ();
+  const [supaData, setSupaData] = useState<AuthError | JwtPayload | null>(null);
+  const [supaChats, setSupaChats] = useState<any[]>();
   const [isSupaLoading, setSupaLoading] = useState<boolean>(true);
-  
+
   const getSupaData = async () => {
     try {
       const res = await UserDetails();
@@ -50,14 +49,13 @@ export default function MusicChat() {
     } catch (err) {
       console.log(err);
     }
-  }
+  };
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
     if (supaData == null) {
-        getSupaData();
+      getSupaData();
     }
-
   }, [messages]);
 
   const handleSubmit = async () => {
@@ -105,7 +103,6 @@ export default function MusicChat() {
     } finally {
       setIsLoading(false);
     }
-
   };
 
   const startNewChat = () => {
@@ -113,16 +110,13 @@ export default function MusicChat() {
     setPrompt("");
   };
 
-  const continueOldChat = () => {
-
-  }
+  const continueOldChat = () => {};
 
   const hasMessages = messages.length > 0;
 
   // This is for when the Page is loading information
-  if (isSupaLoading) { 
-    return (<div>Ah</div>)
-  
+  if (isSupaLoading) {
+    return <div>Ah</div>;
   }
 
   return (
@@ -167,11 +161,12 @@ export default function MusicChat() {
               <div ref={messagesEndRef} />
             </div>
           </div>
-        ) : 
-          // This portion needs to be changed to give an individuals username (Currently not set up)
-          supaData ? <WelcomeHero userName={"username here"} /> :
-            <WelcomeHero userName={"User"} />
-        }
+        ) : // This portion needs to be changed to give an individuals username (Currently not set up)
+        supaData ? (
+          <WelcomeHero userName={"username here"} />
+        ) : (
+          <WelcomeHero userName={"User"} />
+        )}
 
         <ChatInput
           prompt={prompt}

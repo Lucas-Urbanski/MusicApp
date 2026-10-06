@@ -1,59 +1,100 @@
-"use client"
+"use client";
 
-import React from 'react'
-import * as z from "zod"; 
-import { useForm } from 'react-hook-form'; 
-import { zodResolver } from '@hookform/resolvers/zod' 
-import { createClient } from '@/utils/supabase/client';
-import { useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createClient } from "@/utils/supabase/client";
+import { useState } from "react";
+import { Session } from "@supabase/supabase-js";
 
-export default function page() {
+const zodSignIn = z.object({
+  email: z.email("Please input a valid Email"),
+  password: z.string().min(1, "Please input your Password"),
+});
 
-    const [datasd, setData] = useState<Session | string>("");
-    const [errorsd, setError] = useState<string | null>(null);
+type ZodSignInType = z.infer<typeof zodSignIn>;
 
-    const zodSignIn = z.object({
-        email: z.email("Please input your Email"),
-        password: z.string("Please input your Password")
-    });
+export default function Page() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-    type zodSignInType = z.infer<typeof zodSignIn>;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ZodSignInType>({
+    resolver: zodResolver(zodSignIn),
+  });
 
-    const { register, handleSubmit, control, formState: {errors} } = useForm<zodSignInType>({ resolver: zodResolver(zodSignIn), })
+  const onSubmit = async (zodData: ZodSignInType) => {
+    // Clear previous errors
+    setAuthError(null);
+    const supabase = createClient();
 
-    const onSubmit = async (zodData: zodSignInType) => {
-        const supabase = createClient();
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: zodData.email,
+        password: zodData.password,
+      });
 
-        try {
-            const {data, error} = await supabase.auth.signInWithPassword({
-                email: zodData.email,
-                password: zodData.password
-            });
-            if (error) throw error;
+      if (error) throw error;
 
-            setData(data.session);
-            console.log(data);
-        } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "An error occured");
-        }
-
-
-
+      setSession(data.session);
+      console.log(data);
+    } catch (error: unknown) {
+      setAuthError(
+        error instanceof Error ? error.message : "An error occurred",
+      );
     }
-    return (
+  };
+
+  return (
+    <div style={{ padding: "2rem" }}>
+      <h1>Sign In</h1>
+
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
+          maxWidth: "300px",
+        }}
+      >
         <div>
-            page
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <input {...register("email", {required:true})} />
-                {errors.email?.message && <p>{errors.email.message}</p>}
-
-                <input {...register("password", {required:true})} />
-                {errors.password?.message && <p>{errors.password.message}</p>}
-
-                <button type="submit" >SignIn</button>
-            </form>
-            {datasd ? <p>{datasd.toString()}</p> : <p>nothing here bro</p>}
+          <input type="email" placeholder="Email" {...register("email")} />
+          {errors.email?.message && (
+            <p style={{ color: "red" }}>{errors.email.message}</p>
+          )}
         </div>
-    )
+
+        <div>
+          <input
+            type="password"
+            placeholder="Password"
+            {...register("password")}
+          />
+          {errors.password?.message && (
+            <p style={{ color: "red" }}>{errors.password.message}</p>
+          )}
+        </div>
+
+        {authError && (
+          <p style={{ color: "red", fontWeight: "bold" }}>{authError}</p>
+        )}
+
+        <button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? "Signing In..." : "Sign In"}
+        </button>
+      </form>
+
+      <div style={{ marginTop: "2rem" }}>
+        {session ? (
+          <pre>{JSON.stringify(session.user, null, 2)}</pre>
+        ) : (
+          <p>Not logged in</p>
+        )}
+      </div>
+    </div>
+  );
 }

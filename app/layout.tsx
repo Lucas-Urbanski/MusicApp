@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MotifAI",
+  title: "Contrapunctus IA",
   description: "An AI Music Generation App",
 };
 
