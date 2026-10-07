@@ -14,7 +14,7 @@ const zodSignIn = z.object({
 
 type ZodSignInType = z.infer<typeof zodSignIn>;
 
-export default function Page() {
+export default function SignInPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
