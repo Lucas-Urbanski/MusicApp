@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.SUNO_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "SUNO_API_KEY is not configured" },
+        { error: "SUNO_API_KEY is not configured on the server" },
         { status: 500 },
       );
     }
@@ -34,7 +34,15 @@ export async function POST(req: Request) {
       }),
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    let data;
+
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error(`Suno API returned HTML (Status ${response.status}):\n`, responseText);
+      throw new Error(`Suno API failed (Status ${response.status}). Check server logs for the HTML payload.`);
+    }
 
     if (!response.ok || data.code !== 200) {
       throw new Error(data.msg || "Failed to initiate music generation");
