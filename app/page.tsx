@@ -8,22 +8,9 @@ import { WelcomeHero } from "../components/welcomeHero";
 import { ChatBubble } from "../components/chatMassage";
 import { ChatInput } from "../components/chatInput";
 
-import { createClient } from "@/utils/supabase/client";
 import { AuthError, JwtPayload } from "@supabase/supabase-js";
-
-const supabase = createClient();
-
-async function UserDetails() {
-  const { data, error } = await supabase.auth.getClaims();
-  if (error || !data?.claims) return error;
-  return data.claims;
-}
-
-async function getChats() {
-  const { data, error } = await supabase.from("Chats").select();
-  if (error || data == null) return; // This is a hotfix
-  return data;
-}
+import { supaUserDetails, getSupaChats, getSupaMessages, insertSupaChats, insertSupaMessages } from "@/lib/supabase";
+import { ChatsTable } from "@/types/chatsTable";
 
 export default function MusicChat() {
   const [prompt, setPrompt] = useState("");
@@ -34,22 +21,47 @@ export default function MusicChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [supaData, setSupaData] = useState<AuthError | JwtPayload | null>(null);
-  const [supaChats, setSupaChats] = useState<any[]>();
+  const [supaChats, setSupaChats] = useState<ChatsTable[]>([]);
   const [isSupaLoading, setSupaLoading] = useState<boolean>(true);
+  const [currentChat, setCurrentChat] = useState<string | null>(null);
 
   const getSupaData = async () => {
     try {
-      const res = await UserDetails();
+      const res = await supaUserDetails();
       setSupaData(res);
 
-      const ch = await getChats();
+      const ch = await getSupaChats();
       setSupaChats(ch != undefined ? ch : []);
-
       setSupaLoading(false);
     } catch (err) {
       console.log(err);
     }
   };
+
+  const fetchSupaMessages = async (chat_id: string) => {
+    try {
+      const res = await getSupaMessages(chat_id);
+      setCurrentChat(chat_id); 
+      setMessages([]);
+
+      if (res) {
+        for (let i = 0; i < res?.length; i++) {
+
+          const message: ChatMessage = {
+            id: res[i].id,
+            role: res[i].role,
+            content: res[i].content,
+          };
+
+          setMessages((prev) => [...prev, message]);
+        }
+      }
+
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -73,6 +85,27 @@ export default function MusicChat() {
     setIsLoading(true);
 
     try {
+      if (currentChat == null) {
+        const chat = await insertSupaChats(supaChats[supaChats.length - 1].title);
+        if (chat) {
+          setCurrentChat(chat[0].id);
+          insertSupaMessages(userMessage, chat[0].id);
+          
+          setSupaChats((supaChats.map((chats, i) => {
+            if (i === supaChats.length - 1) {
+              return { id: chat[0].id, title: chats.title }
+            } else {
+              return chats;
+            }
+          })));
+        }
+      }
+
+      if (currentChat != null) {
+        insertSupaMessages(userMessage, currentChat);
+      }
+      // insertSupaMessages(aiResponse);
+
       const response = await fetch("/api/suno", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,6 +126,10 @@ export default function MusicChat() {
       };
 
       setMessages((prev) => [...prev, aiResponse]);
+
+
+    /* Assuming that the AI responded, and that someone input a prompt, Put the stuff into supabase */
+
     } catch (err: any) {
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -100,17 +137,34 @@ export default function MusicChat() {
         content: `Error: ${err.message || "Could not generate audio."}`,
       };
       setMessages((prev) => [...prev, errorMessage]);
+
     } finally {
       setIsLoading(false);
     }
+
   };
 
   const startNewChat = () => {
+    setCurrentChat(null);
     setMessages([]);
     setPrompt("");
+
+    if ( supaChats[supaChats.length - 1].id != undefined) {
+      setSupaChats((prev) => [...prev, {id: undefined, title: "New Chats 2"}]);
+      console.log(supaChats[supaChats.length - 1]);
+    }
   };
 
-  const continueOldChat = () => {};
+  const continueOldChat = (chat_id: string | undefined) => {
+    console.log(currentChat);
+    if ( chat_id != undefined) {
+      fetchSupaMessages(chat_id); // If the chat_id is null (IE someone made a new chat and didn't type in it) Kill it
+    } else {
+      setCurrentChat(null);
+      setMessages([]);
+      setPrompt("");
+    }
+  };
 
   const hasMessages = messages.length > 0;
 

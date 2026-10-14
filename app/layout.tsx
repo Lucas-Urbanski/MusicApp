@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Motif IA",
+  title: "Motif AI",
   description: "An AI Music Generation App",
 };
 
