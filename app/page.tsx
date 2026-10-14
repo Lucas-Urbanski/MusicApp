@@ -13,17 +13,46 @@ import { AuthError, JwtPayload } from "@supabase/supabase-js";
 
 const supabase = createClient();
 
-async function UserDetails() {
+async function supaUserDetails() {
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data?.claims) return error;
   return data.claims;
 }
 
-async function getChats() {
+async function getSupaChats() {
   const { data, error } = await supabase.from("Chats").select();
   if (error || data == null) return; // This is a hotfix
   return data;
 }
+
+async function getSupaMessages(chat_id: string) {
+  const { data, error } = await supabase.from("Messages")
+                                          .select()
+                                          .eq("chats_id", chat_id)
+                                          .order("created_at", {ascending: true});
+  // console.log(data);
+  if (error || data == null) {console.log(error); return;} // This is a hotfix
+  return data;
+}
+
+async function insertSupaChats(title: string = "New Chat 1") {
+  const { data, error } = await supabase.from("Chats")
+                                    .insert({title: title})
+                                    .select();
+  if (error || data == null) return; // This is a hotfix
+  return data;
+}
+
+async function insertSupaMessages(message: ChatMessage, chat_id: string) {
+  const { data, error } = await supabase.from("Messages")
+                                          .insert({role: message.role, content: message.content, chats_id: chat_id});
+                                          
+
+  if (error || data == null) {console.log(error); return}; // This is a hotfix
+  console.log(data);
+  return data;
+}
+
 
 export default function MusicChat() {
   const [prompt, setPrompt] = useState("");
@@ -36,20 +65,45 @@ export default function MusicChat() {
   const [supaData, setSupaData] = useState<AuthError | JwtPayload | null>(null);
   const [supaChats, setSupaChats] = useState<any[]>();
   const [isSupaLoading, setSupaLoading] = useState<boolean>(true);
+  const [currentChat, setCurrentChat] = useState<string | null>(null);
 
   const getSupaData = async () => {
     try {
-      const res = await UserDetails();
+      const res = await supaUserDetails();
       setSupaData(res);
 
-      const ch = await getChats();
+      const ch = await getSupaChats();
       setSupaChats(ch != undefined ? ch : []);
-
       setSupaLoading(false);
     } catch (err) {
       console.log(err);
     }
   };
+
+  const fetchSupaMessages = async (chat_id: string) => {
+    try {
+      const res = await getSupaMessages(chat_id);
+      setCurrentChat(chat_id); 
+      setMessages([]);
+
+      if (res) {
+        for (let i = 0; i < res?.length; i++) {
+
+          const message: ChatMessage = {
+            id: res[i].id,
+            role: res[i].role,
+            content: res[i].content,
+          };
+
+          setMessages((prev) => [...prev, message]);
+        }
+      }
+
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
@@ -73,6 +127,20 @@ export default function MusicChat() {
     setIsLoading(true);
 
     try {
+
+      if (currentChat == null) {
+        const chat = await insertSupaChats();
+        if (chat) {
+          setCurrentChat(chat[0].id);
+          insertSupaMessages(userMessage, chat[0].id);
+        }
+      }
+
+      if (currentChat != null) {
+        insertSupaMessages(userMessage, currentChat);
+      }
+      // insertSupaMessages(aiResponse);
+
       const response = await fetch("/api/suno", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -93,6 +161,10 @@ export default function MusicChat() {
       };
 
       setMessages((prev) => [...prev, aiResponse]);
+
+
+    /* Assuming that the AI responded, and that someone input a prompt, Put the stuff into supabase */
+
     } catch (err: any) {
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -100,17 +172,22 @@ export default function MusicChat() {
         content: `Error: ${err.message || "Could not generate audio."}`,
       };
       setMessages((prev) => [...prev, errorMessage]);
+
     } finally {
       setIsLoading(false);
     }
+
   };
 
   const startNewChat = () => {
+    setCurrentChat(null);
     setMessages([]);
     setPrompt("");
   };
 
-  const continueOldChat = () => {};
+  const continueOldChat = (chat_id: string) => {
+    fetchSupaMessages(chat_id);
+  };
 
   const hasMessages = messages.length > 0;
 

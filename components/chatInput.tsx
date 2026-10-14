@@ -52,7 +52,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         )}
       </div>
       <p className="text-center text-xs text-gray-500 mt-3 font-normal">
-        Contrapunctus AI can make mistakes. Verify the music before using it.
+        Motif AI can make mistakes. Verify the music before using it.
       </p>
     </div>
   );
