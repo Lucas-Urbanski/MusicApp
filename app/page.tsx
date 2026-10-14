@@ -8,51 +8,9 @@ import { WelcomeHero } from "../components/welcomeHero";
 import { ChatBubble } from "../components/chatMassage";
 import { ChatInput } from "../components/chatInput";
 
-import { createClient } from "@/utils/supabase/client";
 import { AuthError, JwtPayload } from "@supabase/supabase-js";
-
-const supabase = createClient();
-
-async function supaUserDetails() {
-  const { data, error } = await supabase.auth.getClaims();
-  if (error || !data?.claims) return error;
-  return data.claims;
-}
-
-async function getSupaChats() {
-  const { data, error } = await supabase.from("Chats").select();
-  if (error || data == null) return; // This is a hotfix
-  return data;
-}
-
-async function getSupaMessages(chat_id: string) {
-  const { data, error } = await supabase.from("Messages")
-                                          .select()
-                                          .eq("chats_id", chat_id)
-                                          .order("created_at", {ascending: true});
-  // console.log(data);
-  if (error || data == null) {console.log(error); return;} // This is a hotfix
-  return data;
-}
-
-async function insertSupaChats(title: string = "New Chat 1") {
-  const { data, error } = await supabase.from("Chats")
-                                    .insert({title: title})
-                                    .select();
-  if (error || data == null) return; // This is a hotfix
-  return data;
-}
-
-async function insertSupaMessages(message: ChatMessage, chat_id: string) {
-  const { data, error } = await supabase.from("Messages")
-                                          .insert({role: message.role, content: message.content, chats_id: chat_id});
-                                          
-
-  if (error || data == null) {console.log(error); return}; // This is a hotfix
-  console.log(data);
-  return data;
-}
-
+import { supaUserDetails, getSupaChats, getSupaMessages, insertSupaChats, insertSupaMessages } from "@/lib/supabase";
+import { ChatsTable } from "@/types/chatsTable";
 
 export default function MusicChat() {
   const [prompt, setPrompt] = useState("");
@@ -63,7 +21,7 @@ export default function MusicChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [supaData, setSupaData] = useState<AuthError | JwtPayload | null>(null);
-  const [supaChats, setSupaChats] = useState<any[]>();
+  const [supaChats, setSupaChats] = useState<ChatsTable[]>([]);
   const [isSupaLoading, setSupaLoading] = useState<boolean>(true);
   const [currentChat, setCurrentChat] = useState<string | null>(null);
 
@@ -127,12 +85,19 @@ export default function MusicChat() {
     setIsLoading(true);
 
     try {
-
       if (currentChat == null) {
-        const chat = await insertSupaChats();
+        const chat = await insertSupaChats(supaChats[supaChats.length - 1].title);
         if (chat) {
           setCurrentChat(chat[0].id);
           insertSupaMessages(userMessage, chat[0].id);
+          
+          setSupaChats((supaChats.map((chats, i) => {
+            if (i === supaChats.length - 1) {
+              return { id: chat[0].id, title: chats.title }
+            } else {
+              return chats;
+            }
+          })));
         }
       }
 
@@ -183,10 +148,22 @@ export default function MusicChat() {
     setCurrentChat(null);
     setMessages([]);
     setPrompt("");
+
+    if ( supaChats[supaChats.length - 1].id != undefined) {
+      setSupaChats((prev) => [...prev, {id: undefined, title: "New Chats 2"}]);
+      console.log(supaChats[supaChats.length - 1]);
+    }
   };
 
-  const continueOldChat = (chat_id: string) => {
-    fetchSupaMessages(chat_id);
+  const continueOldChat = (chat_id: string | undefined) => {
+    console.log(currentChat);
+    if ( chat_id != undefined) {
+      fetchSupaMessages(chat_id); // If the chat_id is null (IE someone made a new chat and didn't type in it) Kill it
+    } else {
+      setCurrentChat(null);
+      setMessages([]);
+      setPrompt("");
+    }
   };
 
   const hasMessages = messages.length > 0;
