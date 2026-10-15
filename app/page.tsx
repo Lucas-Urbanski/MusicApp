@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu } from "lucide-react";
+import Link from "next/link";
+import { Menu, User } from "lucide-react";
 import { ChatMessage } from "@/types/chat";
 import { Sidebar } from "../components/sidebar";
 import { WelcomeHero } from "../components/welcomeHero";
@@ -9,7 +10,13 @@ import { ChatBubble } from "../components/chatMassage";
 import { ChatInput } from "../components/chatInput";
 
 import { AuthError, JwtPayload } from "@supabase/supabase-js";
-import { supaUserDetails, getSupaChats, getSupaMessages, insertSupaChats, insertSupaMessages } from "@/lib/supabase";
+import {
+  supaUserDetails,
+  getSupaChats,
+  getSupaMessages,
+  insertSupaChats,
+  insertSupaMessages,
+} from "@/lib/supabase";
 import { ChatsTable } from "@/types/chatsTable";
 
 export default function MusicChat() {
@@ -41,12 +48,11 @@ export default function MusicChat() {
   const fetchSupaMessages = async (chat_id: string) => {
     try {
       const res = await getSupaMessages(chat_id);
-      setCurrentChat(chat_id); 
+      setCurrentChat(chat_id);
       setMessages([]);
 
       if (res) {
         for (let i = 0; i < res?.length; i++) {
-
           const message: ChatMessage = {
             id: res[i].id,
             role: res[i].role,
@@ -56,7 +62,6 @@ export default function MusicChat() {
           setMessages((prev) => [...prev, message]);
         }
       }
-
     } catch (err) {
       console.log(err);
     }
@@ -86,18 +91,22 @@ export default function MusicChat() {
 
     try {
       if (currentChat == null) {
-        const chat = await insertSupaChats(supaChats[supaChats.length - 1].title);
+        const chat = await insertSupaChats(
+          supaChats[supaChats.length - 1].title,
+        );
         if (chat) {
           setCurrentChat(chat[0].id);
           insertSupaMessages(userMessage, chat[0].id);
-          
-          setSupaChats((supaChats.map((chats, i) => {
-            if (i === supaChats.length - 1) {
-              return { id: chat[0].id, title: chats.title }
-            } else {
-              return chats;
-            }
-          })));
+
+          setSupaChats(
+            supaChats.map((chats, i) => {
+              if (i === supaChats.length - 1) {
+                return { id: chat[0].id, title: chats.title };
+              } else {
+                return chats;
+              }
+            }),
+          );
         }
       }
 
@@ -127,9 +136,7 @@ export default function MusicChat() {
 
       setMessages((prev) => [...prev, aiResponse]);
 
-
-    /* Assuming that the AI responded, and that someone input a prompt, Put the stuff into supabase */
-
+      /* Assuming that the AI responded, and that someone input a prompt, Put the stuff into supabase */
     } catch (err: any) {
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -137,11 +144,9 @@ export default function MusicChat() {
         content: `Error: ${err.message || "Could not generate audio."}`,
       };
       setMessages((prev) => [...prev, errorMessage]);
-
     } finally {
       setIsLoading(false);
     }
-
   };
 
   const startNewChat = () => {
@@ -149,15 +154,18 @@ export default function MusicChat() {
     setMessages([]);
     setPrompt("");
 
-    if ( supaChats[supaChats.length - 1].id != undefined) {
-      setSupaChats((prev) => [...prev, {id: undefined, title: "New Chats 2"}]);
+    if (supaChats[supaChats.length - 1].id != undefined) {
+      setSupaChats((prev) => [
+        ...prev,
+        { id: undefined, title: "New Chats 2" },
+      ]);
       console.log(supaChats[supaChats.length - 1]);
     }
   };
 
   const continueOldChat = (chat_id: string | undefined) => {
     console.log(currentChat);
-    if ( chat_id != undefined) {
+    if (chat_id != undefined) {
       fetchSupaMessages(chat_id); // If the chat_id is null (IE someone made a new chat and didn't type in it) Kill it
     } else {
       setCurrentChat(null);
@@ -182,6 +190,15 @@ export default function MusicChat() {
         onOldChat={continueOldChat}
         allChats={supaChats != undefined ? supaChats : []}
       />
+      <div className="absolute top-4 right-4 z-10">
+      <Link
+        href="/settings"
+        className="flex h-10 items-center justify-right gap-2 rounded-xl border border-zinc-300 bg-white px-4 font-bold text-zinc-800 transition hover:bg-zinc-50"
+      >
+        Profile
+        <User size={20} className="transition-transform hover:rotate-45" />
+      </Link>
+      </div>
 
       <main className="flex-1 flex flex-col items-center justify-between relative h-full transition-all duration-300">
         {!isSidebarOpen && (

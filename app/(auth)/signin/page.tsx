@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
+import { LogIn } from "lucide-react";
+import { useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createClient } from "@/utils/supabase/client";
-import { useState } from "react";
-import { Session } from "@supabase/supabase-js";
 
 const zodSignIn = z.object({
   email: z.email("Please input a valid Email"),
@@ -15,7 +16,7 @@ const zodSignIn = z.object({
 type ZodSignInType = z.infer<typeof zodSignIn>;
 
 export default function SignInPage() {
-  const [session, setSession] = useState<Session | null>(null);
+  const supabase = createClient();
   const [authError, setAuthError] = useState<string | null>(null);
 
   const {
@@ -27,9 +28,7 @@ export default function SignInPage() {
   });
 
   const onSubmit = async (zodData: ZodSignInType) => {
-    // Clear previous errors
     setAuthError(null);
-    const supabase = createClient();
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -39,8 +38,10 @@ export default function SignInPage() {
 
       if (error) throw error;
 
-      setSession(data.session);
-      console.log(data);
+      if (data.session) {
+        window.location.href = "/pages/home";
+        return;
+      }
     } catch (error: unknown) {
       setAuthError(
         error instanceof Error ? error.message : "An error occurred",
@@ -49,52 +50,88 @@ export default function SignInPage() {
   };
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Sign In</h1>
-
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "1rem",
-          maxWidth: "300px",
-        }}
-      >
-        <div>
-          <input type="email" placeholder="Email" {...register("email")} />
-          {errors.email?.message && (
-            <p style={{ color: "red" }}>{errors.email.message}</p>
-          )}
+    <main className="flex min-h-screen items-center justify-center bg-[#131314] px-6 py-12 text-white font-sans relative">
+      <div className="w-full max-w-md rounded-3xl border border-gray-800 bg-[#1e1f20] p-8 shadow-2xl">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#70383a] text-white shadow-lg">
+            <span className="text-xl font-bold" style={{ fontFamily: "serif" }}>
+              m
+            </span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Welcome Back
+          </h1>
         </div>
 
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            {...register("password")}
-          />
-          {errors.password?.message && (
-            <p style={{ color: "red" }}>{errors.password.message}</p>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div>
+            <label
+              htmlFor="email"
+              className="mb-2 block text-sm font-medium text-gray-300"
+            >
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              {...register("email")}
+              className="w-full rounded-xl border border-gray-800 bg-[#131314] px-4 py-3 text-white placeholder-gray-500 outline-none transition focus:border-[#70383a]"
+            />
+            {errors.email?.message && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-2 block text-sm font-medium text-gray-300"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              {...register("password")}
+              className="w-full rounded-xl border border-gray-800 bg-[#131314] px-4 py-3 text-white placeholder-gray-500 outline-none transition focus:border-[#70383a]"
+            />
+            {errors.password?.message && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          {authError && (
+            <p className="rounded-xl bg-red-950/50 border border-red-800/50 px-4 py-3 text-sm text-red-300">
+              {authError}
+            </p>
           )}
-        </div>
 
-        {authError && (
-          <p style={{ color: "red", fontWeight: "bold" }}>{authError}</p>
-        )}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#70383a] px-4 py-3 font-semibold text-white transition hover:bg-[#8e4548] disabled:opacity-60 shadow-lg"
+          >
+            <LogIn size={18} />
+            {isSubmitting ? "Signing In..." : "Sign In"}
+          </button>
+        </form>
 
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Signing In..." : "Sign In"}
-        </button>
-      </form>
-
-      <div style={{ marginTop: "2rem" }}>
-        {session ? (
-          <pre>{JSON.stringify(session.user, null, 2)}</pre>
-        ) : (
-          <p>Not logged in</p>
-        )}
+        <p className="mt-6 text-center text-sm text-gray-400">
+          Don't have an account?{" "}
+          <Link
+            href="/signup"
+            className="font-semibold text-white hover:underline"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
-    </div>
+    </main>
   );
 }
