@@ -2,14 +2,7 @@
 
 import React from "react";
 import { Menu, Plus, Minus } from "lucide-react";
-
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onOldChat: Function; // Change Later
-  onNewChat: () => void;
-  allChats: any[];
-}
+import type { SidebarProps } from "@/types/types";
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
@@ -34,18 +27,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Menu className="w-5 h-5" />
           </button>
         </div>
-        {  
-          allChats.map((item, index) => (
-            <button
-              onClick={() => onOldChat(item.id)}
-              className="flex items-center gap-3 bg-[#131314] hover:bg-gray-800 transition-colors rounded-full px-4 py-2.5 text-sm font-medium mb-4 w-fit text-gray-200 border border-gray-700"
-              key={index}
-            >
-              <Minus className="w-4 h-4" />
-              <span className="italic">{item.title}</span>
-            </button>
-          ))
-        }
+        {allChats.map((item, index) => (
+          <button
+            onClick={() => onOldChat(item.id)}
+            className="flex items-center gap-3 bg-[#131314] hover:bg-gray-800 transition-colors rounded-full px-4 py-2.5 text-sm font-medium mb-4 w-fit text-gray-200 border border-gray-700"
+            key={item.id ?? index}
+          >
+            <Minus className="w-4 h-4" />
+            <span className="italic">{item.title}</span>
+          </button>
+        ))}
 
         <button
           onClick={onNewChat}

@@ -7,13 +7,12 @@ import { createClient } from "@/utils/supabase/client";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { SignInFormValues } from "@/types/types";
 
 const zodSignIn = z.object({
   email: z.email("Please input a valid Email"),
   password: z.string().min(1, "Please input your Password"),
 });
-
-type ZodSignInType = z.infer<typeof zodSignIn>;
 
 export default function SignInPage() {
   const supabase = createClient();
@@ -23,11 +22,11 @@ export default function SignInPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ZodSignInType>({
+  } = useForm<SignInFormValues>({
     resolver: zodResolver(zodSignIn),
   });
 
-  const onSubmit = async (zodData: ZodSignInType) => {
+  const onSubmit = async (zodData: SignInFormValues) => {
     setAuthError(null);
 
     try {
@@ -39,7 +38,7 @@ export default function SignInPage() {
       if (error) throw error;
 
       if (data.session) {
-        window.location.href = "/pages/home";
+        window.location.href = "/";
         return;
       }
     } catch (error: unknown) {

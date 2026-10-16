@@ -1,8 +1,5 @@
 import React from "react";
-
-interface WelcomeHeroProps {
-  userName?: string;
-}
+import type { WelcomeHeroProps } from "@/types/types";
 
 export const WelcomeHero: React.FC<WelcomeHeroProps> = ({
   userName = "Your Mom",

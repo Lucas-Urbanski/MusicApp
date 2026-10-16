@@ -1,9 +1,5 @@
 import React from "react";
-import { ChatMessage } from "@/types/chat";
-
-interface ChatMessageProps {
-  message: ChatMessage;
-}
+import type { ChatMessageProps } from "@/types/types";
 
 export const ChatBubble: React.FC<ChatMessageProps> = ({ message }) => {
   const isUser = message.role === "user";
@@ -18,6 +14,11 @@ export const ChatBubble: React.FC<ChatMessageProps> = ({ message }) => {
         }`}
       >
         <span>{message.content}</span>
+        {message.attachmentName && (
+          <span className="text-xs opacity-75">
+            Attached {message.attachmentType ?? "file"}: {message.attachmentName}
+          </span>
+        )}
         {message.audioUrl && (
           <audio controls className="w-full mt-1 rounded-lg">
             <source src={message.audioUrl} type="audio/mpeg" />

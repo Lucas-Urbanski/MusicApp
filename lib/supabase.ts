@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/client";
-import { ChatMessage } from "@/types/chat";
+import type { ChatMessage } from "@/types/types";
 
 export const supabase = createClient();
 
@@ -16,29 +16,37 @@ export async function getSupaChats() {
 }
 
 export async function getSupaMessages(chat_id: string) {
-  const { data, error } = await supabase.from("Messages")
-                                          .select()
-                                          .eq("chats_id", chat_id)
-                                          .order("created_at", {ascending: true});
+  const { data, error } = await supabase
+    .from("Messages")
+    .select()
+    .eq("chats_id", chat_id)
+    .order("created_at", { ascending: true });
   // console.log(data);
-  if (error || data == null) {console.log(error); return;} // This is a hotfix
+  if (error || data == null) {
+    console.log(error);
+    return;
+  } // This is a hotfix
   return data;
 }
 
 export async function insertSupaChats(title: string = "New Chat 1") {
-  const { data, error } = await supabase.from("Chats")
-                                    .insert({title: title})
-                                    .select();
+  const { data, error } = await supabase
+    .from("Chats")
+    .insert({ title: title })
+    .select();
   if (error || data == null) return; // This is a hotfix
   return data;
 }
 
-export async function insertSupaMessages(message: ChatMessage, chat_id: string) {
-  const { data, error } = await supabase.from("Messages")
-                                          .insert({role: message.role, content: message.content, chats_id: chat_id});
-                                          
+export async function insertSupaMessages(
+  message: ChatMessage,
+  chat_id: string,
+) {
+  const { data, error } = await supabase
+    .from("Messages")
+    .insert({ role: message.role, content: message.content, chats_id: chat_id })
+    .select();
 
-  if (error || data == null) {console.log(error); return}; // This is a hotfix
-  console.log(data);
+  if (error) throw error;
   return data;
 }

@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { SignUpFormValues } from "@/types/types";
 
 const zodSignUp = z
   .object({
@@ -20,8 +21,6 @@ const zodSignUp = z
     path: ["confirmPassword"],
   });
 
-type ZodSignUpType = z.infer<typeof zodSignUp>;
-
 export default function SignUpPage() {
   const supabase = createClient();
   const [authError, setAuthError] = useState<string | null>(null);
@@ -31,11 +30,11 @@ export default function SignUpPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<ZodSignUpType>({
+  } = useForm<SignUpFormValues>({
     resolver: zodResolver(zodSignUp),
   });
 
-  const onSubmit = async (zodData: ZodSignUpType) => {
+  const onSubmit = async (zodData: SignUpFormValues) => {
     setAuthError(null);
     setMessage("");
 
@@ -53,7 +52,7 @@ export default function SignUpPage() {
       if (error) throw error;
 
       if (data.session) {
-        window.location.href = "/pages/home";
+        window.location.href = "/";
         return;
       }
 
